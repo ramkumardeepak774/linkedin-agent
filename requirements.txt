@@ -1,0 +1,24 @@
+# Core Automation
+playwright>=1.40.0
+pytest-playwright>=0.4.0
+beautifulsoup4>=4.12.0
+
+# Intelligence & Agents
+langchain>=0.1.0
+langchain-community>=0.0.10
+langchain-openai>=0.0.5
+langchain-fireworks>=0.1.0
+langgraph>=0.0.20
+python-dotenv>=1.0.0
+pydantic>=2.5.0
+
+# Data & Analytics
+pandas>=2.1.0
+sqlalchemy>=2.0.0
+matplotlib>=3.8.0
+streamlit>=1.30.0  # For the dashboard
+
+# Utils
+tenacity>=8.2.0  # For retries
+humanize>=4.9.0
+coloredlogs>=15.0.0
