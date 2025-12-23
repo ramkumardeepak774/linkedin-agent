@@ -36,9 +36,9 @@ def search_jobs(state: AgentState):
 
 def analyze_job(state: AgentState):
     print("--- Analyzing Job ---")
-    from job_analyzer import JobAnalyzer
+    from job_analyzer import create_job_analyzer
     
-    analyzer = JobAnalyzer()
+    analyzer = create_job_analyzer()
     found_jobs = state.get("found_jobs", [])
     
     if not found_jobs:
@@ -49,7 +49,7 @@ def analyze_job(state: AgentState):
     job = found_jobs[0]
     print(f"Analyzing: {job['title']} at {job['company']}")
     
-    analysis = analyzer.analyze_job(job)
+    analysis = analyzer.analyze(job)
     
     # Add analysis to job data
     job["score"] = analysis["score"]
