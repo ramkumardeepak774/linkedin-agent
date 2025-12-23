@@ -14,8 +14,25 @@ class AgentState(TypedDict):
 # Define Nodes
 def search_jobs(state: AgentState):
     print("--- Searching for Jobs ---")
-    # TODO: Call Browser Manager to search
-    return {"found_jobs": [{"title": "Software Engineer", "id": "123"}]}
+    import asyncio
+    from browser_manager import BrowserManager
+    
+    # We need to run async browser code in this sync node
+    # For now, we instantiate a fresh manager or reuse one if global
+    # Ideally, we inject the browser_manager, but for this prototype:
+    
+    async def run_search():
+        bm = BrowserManager()
+        # Criteria from state or default
+        query = state.get("job_search_criteria", {}).get("query", "Software Engineer")
+        location = state.get("job_search_criteria", {}).get("location", "United States")
+        
+        jobs = await bm.search_jobs(query, location)
+        await bm.close()
+        return jobs
+
+    found_jobs = asyncio.run(run_search())
+    return {"found_jobs": found_jobs}
 
 def analyze_job(state: AgentState):
     print("--- Analyzing Job ---")

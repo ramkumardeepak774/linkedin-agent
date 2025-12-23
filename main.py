@@ -22,7 +22,20 @@ def main():
     try:
         choice = input("Enter choice (1-3): ")
         if choice == "1":
-            print("Starting Job Search Agent... (Not implemented yet)")
+            print("Starting Job Search Agent...")
+            from agent_graph import app
+            # Define search criteria
+            criteria = {
+                "query": "Software Engineer", 
+                "location": "Remote"
+            }
+            # Run the graph
+            result = app.invoke({"job_search_criteria": criteria})
+            print("\n--- Execution Complete ---")
+            print(f"Jobs Found: {len(result['found_jobs'])}")
+            for job in result['found_jobs']:
+                print(f"- {job['title']} at {job['company']}")
+            
         elif choice == "2":
             print("Starting Networking Agent... (Not implemented yet)")
         elif choice == "3":
