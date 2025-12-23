@@ -36,8 +36,30 @@ def search_jobs(state: AgentState):
 
 def analyze_job(state: AgentState):
     print("--- Analyzing Job ---")
-    # TODO: Call LLM to analyze
-    return {"current_job": state["found_jobs"][0]}
+    from job_analyzer import JobAnalyzer
+    
+    analyzer = JobAnalyzer()
+    found_jobs = state.get("found_jobs", [])
+    
+    if not found_jobs:
+        print("No jobs to analyze")
+        return {"current_job": None}
+    
+    # Analyze the first job (in real workflow, we'd loop through all)
+    job = found_jobs[0]
+    print(f"Analyzing: {job['title']} at {job['company']}")
+    
+    analysis = analyzer.analyze_job(job)
+    
+    # Add analysis to job data
+    job["score"] = analysis["score"]
+    job["analysis"] = analysis
+    
+    print(f"Score: {analysis['score']}/100")
+    print(f"Reason: {analysis['reason']}")
+    print(f"Should Apply: {analysis['should_apply']}")
+    
+    return {"current_job": job}
 
 def apply_to_job(state: AgentState):
     print("--- Applying to Job ---")
