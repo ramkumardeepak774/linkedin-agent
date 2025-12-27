@@ -26,8 +26,8 @@ class Config:
     MIN_DELAY = 2  # seconds
     MAX_DELAY = 10 # seconds
     
-    # LLM Settings
-    DEFAULT_LLM_MODEL = "accounts/fireworks/models/llama-v3p1-8b-instruct"
+    # LLM Settings  
+    DEFAULT_LLM_MODEL = "accounts/fireworks/models/gpt-oss-20b"  # Cheapest option
     SMART_LLM_MODEL = "gpt-4o"
     
     # Job Application Settings

@@ -168,6 +168,183 @@ class BrowserManager:
                 
         print(f"Found {len(jobs)} jobs.")
         return jobs
+    
+    # ===== EASY APPLY AUTOMATION =====
+    
+    async def navigate_to_job(self, job_url: str) -> bool:
+        """Navigate to a specific job page."""
+        try:
+            await self.page.goto(job_url)
+            await self.page.wait_for_timeout(2000)
+            return True
+        except Exception as e:
+            print(f"Error navigating to job: {e}")
+            return False
+    
+    async def find_easy_apply_button(self) -> bool:
+        """Check if Easy Apply button exists on current page."""
+        try:
+            # LinkedIn uses different selectors for Easy Apply
+            selectors = [
+                "button.jobs-apply-button",
+                "button:has-text('Easy Apply')",
+                ".jobs-apply-button",
+            ]
+            
+            for selector in selectors:
+                button = await self.page.query_selector(selector)
+                if button:
+                    text = await button.inner_text()
+                    if "easy apply" in text.lower():
+                        print("✓ Easy Apply button found!")
+                        return True
+            
+            print("✗ No Easy Apply button found")
+            return False
+        except Exception as e:
+            print(f"Error finding Easy Apply button: {e}")
+            return False
+    
+    async def click_easy_apply(self) -> bool:
+        """Click the Easy Apply button and wait for modal."""
+        try:
+            # Click button
+            await self.page.click("button:has-text('Easy Apply')")
+            await self.page.wait_for_timeout(2000)
+            
+            # Wait for modal to appear
+            modal = await self.page.wait_for_selector(".jobs-easy-apply-modal", timeout=5000)
+            if modal:
+                print("✓ Easy Apply modal opened")
+                return True
+            
+            return False
+        except Exception as e:
+            print(f"Error clicking Easy Apply: {e}")
+            return False
+    
+    async def detect_form_fields(self):
+        """Detect all form fields in the Easy Apply modal."""
+        fields = []
+        
+        try:
+            # Text inputs
+            text_inputs = await self.page.query_selector_all(".jobs-easy-apply-modal input[type='text'], .jobs-easy-apply-modal input[type='email'], .jobs-easy-apply-modal input[type='tel']")
+            for inp in text_inputs:
+                label_el = await inp.evaluate("el => el.closest('label') || el.previousElementSibling")
+                label = await label_el.inner_text() if label_el else "Unknown"
+                field_id = await inp.get_attribute("id")
+                
+                fields.append({
+                    "type": "text",
+                    "label": label.strip(),
+                    "id": field_id,
+                    "element": inp
+                })
+            
+            # Dropdowns
+            selects = await self.page.query_selector_all(".jobs-easy-apply-modal select")
+            for sel in selects:
+                label_el = await sel.evaluate("el => el.closest('label') || el.previousElementSibling")
+                label = await label_el.inner_text() if label_el else "Unknown"
+                
+                # Get options
+                options = await sel.query_selector_all("option")
+                option_texts = []
+                for opt in options:
+                    text = await opt.inner_text()
+                    if text.strip():
+                        option_texts.append(text.strip())
+                
+                fields.append({
+                    "type": "dropdown",
+                    "label": label.strip(),
+                    "options": option_texts,
+                    "element": sel
+                })
+            
+            # Radio buttons
+            radios = await self.page.query_selector_all(".jobs-easy-apply-modal input[type='radio']")
+            radio_groups = {}
+            for radio in radios:
+                name = await radio.get_attribute("name")
+                if name not in radio_groups:
+                    label_el = await radio.evaluate("el => el.closest('fieldset')?.querySelector('legend') || el.closest('label')")
+                    label = await label_el.inner_text() if label_el else "Unknown"
+                    radio_groups[name] = {
+                        "type": "radio",
+                        "label": label.strip(),
+                        "options": [],
+                        "name": name
+                    }
+                
+                value = await radio.get_attribute("value")
+                radio_groups[name]["options"].append(value)
+            
+            fields.extend(radio_groups.values())
+            
+            print(f"Detected {len(fields)} form fields")
+            return fields
+            
+        except Exception as e:
+            print(f"Error detecting form fields: {e}")
+            return []
+    
+    async def fill_form_field(self, field, answer: str) -> bool:
+        """Fill a single form field with the given answer."""
+        try:
+            field_type = field.get("type")
+            
+            if field_type == "text":
+                # Clear and type
+                field_id = field.get("id")
+                await self.page.fill(f"#{field_id}", answer)
+                print(f"  Filled text: {field['label']} = {answer}")
+                return True
+            
+            elif field_type == "dropdown":
+                # Select option
+                element = field.get("element")
+                await element.select_option(label=answer)
+                print(f"  Selected: {field['label']} = {answer}")
+                return True
+            
+            elif field_type == "radio":
+                # Click radio button
+                name = field.get("name")
+                await self.page.click(f"input[name='{name}'][value='{answer}']")
+                print(f"  Checked radio: {field['label']} = {answer}")
+                return True
+            
+            return False
+        except Exception as e:
+            print(f"Error filling field: {e}")
+            return False
+    
+    async def submit_application(self) -> bool:
+        """Submit the Easy Apply application."""
+        try:
+            # Look for Submit or Next button
+            submit_selectors = [
+                "button:has-text('Submit application')",
+                "button:has-text('Submit')",
+                "button:has-text('Next')",
+                ".jobs-easy-apply-modal footer button[type='submit']"
+            ]
+            
+            for selector in submit_selectors:
+                button = await self.page.query_selector(selector)
+                if button:
+                    await button.click()
+                    await self.page.wait_for_timeout(2000)
+                    print("✓ Clicked submit/next button")
+                    return True
+            
+            print("✗ No submit button found")
+            return False
+        except Exception as e:
+            print(f"Error submitting application: {e}")
+            return False
 
     async def goto_linkedin(self):
         # Renamed/Deprecated logic, just calls login

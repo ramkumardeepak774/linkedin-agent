@@ -63,8 +63,71 @@ def analyze_job(state: AgentState):
 
 def apply_to_job(state: AgentState):
     print("--- Applying to Job ---")
-    # TODO: Call Browser Manager to apply
-    return {"application_status": "submitted"}
+    from form_filler import create_form_filler
+    
+    job = state.get("current_job")
+    if not job:
+        print("No job to apply to")
+        return {"application_status": "no_job"}
+    
+    # Check if should apply based on score
+    should_apply = job.get("analysis", {}).get("should_apply", False)
+    if not should_apply:
+        print(f"Skipping application (score too low: {job.get('score', 0)})")
+        return {"application_status": "skipped_low_score"}
+    
+    print(f"Applying to: {job['title']} at {job['company']}")
+    
+    # Get browser from state
+    browser = state.get("browser")
+    if not browser:
+        print("No browser instance available")
+        return {"application_status": "error_no_browser"}
+    
+    async def apply():
+        # Navigate to job
+        success = await browser.navigate_to_job(job["url"])
+        if not success:
+            return "error_navigation"
+        
+        # Check for Easy Apply
+        has_easy_apply = await browser.find_easy_apply_button()
+        if not has_easy_apply:
+            return "no_easy_apply"
+        
+        # Click Easy Apply
+        clicked = await browser.click_easy_apply()
+        if not clicked:
+            return "error_click"
+        
+        # Detect form fields
+        fields = await browser.detect_form_fields()
+        if len(fields) > 10:
+            print(f"Form too complex ({len(fields)} fields), skipping")
+            return "skipped_complex_form"
+        
+        # Fill each field
+        form_filler = create_form_filler()
+        for field in fields:
+            answer = form_filler.get_answer(field)
+            if answer:
+                await browser.fill_form_field(field, answer)
+            else:
+                print(f"  Skipped field (no answer): {field['label']}")
+        
+        # Submit
+        submitted = await browser.submit_application()
+        if submitted:
+            return "submitted"
+        else:
+            return "error_submit"
+    
+    # Run async function
+    import asyncio
+    status = asyncio.run(apply())
+    
+    print(f"Application status: {status}")
+    return {"application_status": status}
 
 def networking(state: AgentState):
     print("--- Networking Step ---")
